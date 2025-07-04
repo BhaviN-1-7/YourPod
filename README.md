@@ -1,27 +1,26 @@
-# YourPod: Streamlit Script Generator with gTTS & Groq Llama 3
+# Podcast Generator & Image Captioning Suite
 
-YourPod is a free, locally-runnable Streamlit web app that generates scripts from text or PDF input using Groq Llama 3 (via the Groq API) and converts them to audio using Google Text-to-Speech (gTTS). It supports podcast-style, summary, and detailed explanation output, and can generate podcast audio with two distinct voices.
+A modern Streamlit app for generating podcast-style scripts (with Groq Llama 3) and creating funny, sarcastic, or story-based captions for images using the BLIP model—all with a beautiful, easy-to-use interface.
 
 ---
 
 ## Features
-- **Input:**
-  - Text area for manual entry
-  - PDF upload and automatic text extraction
-- **Output Styles:**
-  - Podcast-style discussion (two hosts, two accents)
-  - Summary
-  - Detailed explanation
-- **Script Generation:**
+- **Podcast Script Generator:**
+  - Enter text or upload a PDF to generate:
+    - Podcast-style discussion (alternating hosts)
+    - Summary
+    - Detailed explanation
   - Uses Groq Llama 3 via the Groq API
-- **Audio Generation:**
-  - Uses gTTS (Google Text-to-Speech)
-  - Podcast mode alternates two female host names ("Alice" and "Sophie") and two English accents (US/UK)
-  - Humanizes script for more natural speech
-- **Downloadable Audio:**
-  - Download generated MP3 files
-- **Secure API Key Handling:**
-  - API key is stored in `config_secret.py` (not tracked by git)
+  - Converts scripts to audio with gTTS (Google Text-to-Speech)
+  - Downloadable MP3 output
+- **Image Captioning:**
+  - Upload an image and generate a caption or creative story
+  - BLIP model runs locally (no Hugging Face API key required)
+  - Option for funny/sarcastic or creative story output (uses Groq for style)
+  - Captions/stories are displayed in a visually appealing box
+- **Modern UI:**
+  - Large, bold tab navigation for easy switching between features
+  - Clean, attractive layout and color scheme
 
 ---
 
@@ -59,19 +58,24 @@ YourPod is a free, locally-runnable Streamlit web app that generates scripts fro
 ---
 
 ## Usage
-1. Enter text or upload a PDF.
-2. Select the output style (Podcast, Summary, Detailed Explanation).
-3. Click "Generate Script".
-4. Review the generated script.
-5. Click the audio button to generate and play/download the MP3.
+1. Use the large tabs at the top to switch between "YourPod" (script generator) and "Image Captioning".
+2. For scripts: Enter text or upload a PDF, select output style, and generate/download audio.
+3. For image captions: Upload an image, choose caption type, and generate a funny/sarcastic caption or creative story. The result appears in a styled box.
+
+---
+
+## Notes
+- **BLIP Model Loading:** The first time you use image captioning, the BLIP model will be downloaded and loaded into memory. This may take up to a minute. Subsequent uses will be much faster.
+- **No Hugging Face API key is required** for image captioning—everything runs locally.
+- **Groq API key is required** for script and story generation.
 
 ---
 
 ## Deployment
-- **Local:** Works out of the box as long as you have internet access (for gTTS and Groq API).
+- **Local:** Works out of the box as long as you have internet access (for Groq API and gTTS).
 - **Streamlit Community Cloud:**
   - gTTS may not work reliably due to outbound network restrictions.
-  - For public deployment, consider using a cloud TTS API (e.g., ElevenLabs, PlayHT, Azure).
+  - BLIP model download may be slow or restricted on some cloud platforms.
 - **Cloud VM:** Works if the server has internet access.
 
 ---
@@ -88,6 +92,8 @@ YourPod is a free, locally-runnable Streamlit web app that generates scripts fro
 - [Groq Llama 3](https://groq.com/)
 - [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/)
 - [pydub](https://github.com/jiaaro/pydub)
+- [BLIP (Salesforce)](https://huggingface.co/Salesforce/blip-image-captioning-base)
+- [transformers](https://huggingface.co/docs/transformers/index)
 
 ---
 

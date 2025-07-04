@@ -249,7 +249,8 @@ with tabs[0]:
 
     if st.session_state.script:
         cleaned_script = clean_script(st.session_state.script, output_style)
-        named_script = replace_host_names(cleaned_script, "Alice", "Sophie")
+        # Use original cleaned_script for audio generation (preserves Host 1/Host 2 labels)
+        named_script = replace_host_names(cleaned_script, "Alice", "Sophie")  # Only for display
         humanized_script = humanize_script(named_script)
         st.subheader("Generated Script:")
         st.text_area("Script Output", humanized_script, height=200)
@@ -260,7 +261,8 @@ with tabs[0]:
         if output_style == "Podcast-Style Discussion":
             if st.button("Generate Podcast Audio (Single Voice)"):
                 with st.spinner("Generating podcast audio with gTTS..."):
-                    audio_file = generate_podcast_audio_gtts(humanized_script)
+                    # Use cleaned_script (with Host 1/2) for correct voice alternation
+                    audio_file = generate_podcast_audio_gtts(cleaned_script)
                 if audio_file:
                     st.success("Audio generated!")
                     st.audio(audio_file, format="audio/mp3")

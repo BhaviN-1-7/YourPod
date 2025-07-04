@@ -6,11 +6,20 @@ import os
 from gtts import gTTS
 from pydub import AudioSegment
 import re
-from config_secret import GROQ_API_KEY
+from config_secret import GROQ_API_KEY, HF_API_KEY
+from PIL import Image
+from transformers import BlipProcessor, BlipForConditionalGeneration
+import torch
 
-# ========== CONFIGURATION ========== #
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama3-70b-8192"
+# Load BLIP model and processor once at the top
+caption_model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-base")
+caption_processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-base")
+
+def generate_caption(image: Image.Image):
+    inputs = caption_processor(images=image, return_tensors="pt")
+    output = caption_model.generate(**inputs)
+    caption = caption_processor.decode(output[0], skip_special_tokens=True).strip()
+    return caption
 
 # ========== HELPER FUNCTIONS ========== #
 def extract_text_from_pdf(pdf_file):
@@ -57,14 +66,14 @@ def generate_script_with_groq(prompt):
             "Content-Type": "application/json"
         }
         data = {
-            "model": GROQ_MODEL,
+            "model": "llama3-70b-8192",
             "messages": [
                 {"role": "user", "content": prompt}
             ],
             "max_tokens": 600,
             "temperature": 0.7
         }
-        response = requests.post(GROQ_API_URL, headers=headers, json=data, timeout=60)
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=60)
         response.raise_for_status()
         result = response.json()
         return result["choices"][0]["message"]["content"].strip(), None
@@ -145,106 +154,164 @@ def replace_host_names(text, name1="Alice", name2="Sophie"):
     text = text.replace("Host 2", name2)
     return text
 
-# ========== STREAMLIT UI ========== #
-st.set_page_config(page_title="Script Generator", layout="centered")
+# ========== CONFIGURATION ========== #
+st.set_page_config(page_title="Podcast Generator & Image Captioning Suite", layout="centered")
+
+# ========== HEADER STYLE ========== #
 st.markdown("""
     <style>
     .main {background-color: #f5f7fa;}
-    .stTabs [data-baseweb="tab"] {font-size: 18px; font-weight: 600;}
+    .stTabs [data-baseweb="tab"] {
+        font-size: 2.3rem !important;
+        font-weight: 900 !important;
+        color: #0056b3 !important;
+        padding: 18px 36px 18px 36px !important;
+        margin-right: 24px !important;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        margin-bottom: 1.5em;
+    }
+    .stTabs [data-baseweb="tab"]:not([aria-selected="true"]) {
+        opacity: 0.7;
+    }
+    .stTabs [aria-selected="true"] {
+        border-bottom: 6px solid #ff4b4b !important;
+        color: #ff4b4b !important;
+    }
     .stRadio label {font-size: 16px;}
     .stButton button {background-color: #0056b3; color: white; font-weight: bold;}
+    .main-title {
+        font-size: 2.7rem;
+        font-weight: 900;
+        color: #0056b3;
+        margin-bottom: 0.2em;
+        margin-top: 0.2em;
+        letter-spacing: 1px;
+        text-align: center;
+    }
     </style>
-    """, unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
-st.title("Script Generator (Groq Llama 3 + gTTS)")
-st.markdown("""
-Generate podcast-style scripts, summaries, or detailed explanations from text or PDFs using Groq Llama 3. Generate audio files with gTTS (Google Text-to-Speech).
-""")
+st.markdown('<div class="main-title">Podcast Generator & Image Captioning Suite</div>', unsafe_allow_html=True)
 
-tabs = st.tabs(["Text Input", "PDF Upload"])
-output_style = st.radio(
-    "Select Output Style:",
-    ("Podcast-Style Discussion", "Summary", "Detailed Explanation"),
-    horizontal=True
-)
-
-if "script" not in st.session_state:
-    st.session_state.script = ""
-if "err" not in st.session_state:
-    st.session_state.err = ""
-
-input_text = None
-input_error = None
+# ========== TABS NAVIGATION ========== #
+tabs = st.tabs(["YourPod", "Image Captioning"])
 
 with tabs[0]:
-    st.subheader("Enter Text")
-    user_text = st.text_area("Enter your topic or content:", height=120)
-    if st.button("Generate Script", key="text_btn"):
-        if not user_text.strip():
-            st.session_state.err = "Please enter some text."
-            st.session_state.script = ""
-        else:
-            with st.spinner("Generating script with Groq Llama 3..."):
-                prompt = build_prompt(user_text.strip(), output_style)
-                script, err = generate_script_with_groq(prompt)
-                st.session_state.script = script
-                st.session_state.err = err
+    st.subheader("Script Generator (Groq Llama 3 + gTTS)")
+    st.markdown("""
+    Generate podcast-style scripts, summaries, or detailed explanations from text or PDFs using Groq Llama 3. Generate audio files with gTTS (Google Text-to-Speech).
+    """)
+    script_tabs = st.tabs(["Text Input", "PDF Upload"])
+    output_style = st.radio(
+        "Select Output Style:",
+        ("Podcast-Style Discussion", "Summary", "Detailed Explanation"),
+        horizontal=True
+    )
 
-with tabs[1]:
-    st.subheader("Upload PDF")
-    pdf_file = st.file_uploader("Upload a PDF file:", type=["pdf"])
-    if st.button("Generate Script", key="pdf_btn"):
-        if not pdf_file:
-            st.session_state.err = "Please upload a PDF file."
-            st.session_state.script = ""
-        else:
-            text, err = extract_text_from_pdf(pdf_file)
-            if err:
-                st.session_state.err = err
+    if "script" not in st.session_state:
+        st.session_state.script = ""
+    if "err" not in st.session_state:
+        st.session_state.err = ""
+
+    with script_tabs[0]:
+        st.subheader("Enter Text")
+        user_text = st.text_area("Enter your topic or content:", height=120)
+        if st.button("Generate Script", key="text_btn"):
+            if not user_text.strip():
+                st.session_state.err = "Please enter some text."
                 st.session_state.script = ""
             else:
                 with st.spinner("Generating script with Groq Llama 3..."):
-                    prompt = build_prompt(text, output_style)
+                    prompt = build_prompt(user_text.strip(), output_style)
                     script, err = generate_script_with_groq(prompt)
                     st.session_state.script = script
                     st.session_state.err = err
 
-if st.session_state.script:
-    cleaned_script = clean_script(st.session_state.script, output_style)
-    named_script = replace_host_names(cleaned_script, "Alice", "Sophie")
-    humanized_script = humanize_script(named_script)
-    st.subheader("Generated Script:")
-    st.text_area("Script Output", humanized_script, height=200)
-    st.markdown(
-        "> **Note:** Using gTTS (Google Text-to-Speech) for audio generation. Requires internet connection."
-    )
-    st.markdown("**Generate Audio (Powered by gTTS):**")
-    if output_style == "Podcast-Style Discussion":
-        if st.button("Generate Podcast Audio (Single Voice)"):
-            with st.spinner("Generating podcast audio with gTTS..."):
-                audio_file = generate_podcast_audio_gtts(humanized_script)
-            if audio_file:
-                st.success("Audio generated!")
-                st.audio(audio_file, format="audio/mp3")
-                with open(audio_file, "rb") as f:
-                    st.download_button("Download Podcast Audio (MP3)", f, file_name="podcast.mp3", mime="audio/mp3")
+    with script_tabs[1]:
+        st.subheader("Upload PDF")
+        pdf_file = st.file_uploader("Upload a PDF file:", type=["pdf"])
+        if st.button("Generate Script", key="pdf_btn"):
+            if not pdf_file:
+                st.session_state.err = "Please upload a PDF file."
+                st.session_state.script = ""
             else:
-                st.error("gTTS failed to generate audio.")
-    else:
-        if st.button(f"Generate Audio"):
-            with st.spinner("Generating audio with gTTS..."):
-                audio_file = gtts_tts_to_mp3(humanized_script)
-            if audio_file:
-                st.success("Audio generated!")
-                st.audio(audio_file, format="audio/mp3")
-                with open(audio_file, "rb") as f:
-                    st.download_button(f"Download Audio", f, file_name=f"script.mp3", mime="audio/mp3")
-            else:
-                st.error("gTTS failed to generate audio.")
-elif st.session_state.err:
-    st.error(st.session_state.err)
+                text, err = extract_text_from_pdf(pdf_file)
+                if err:
+                    st.session_state.err = err
+                    st.session_state.script = ""
+                else:
+                    with st.spinner("Generating script with Groq Llama 3..."):
+                        prompt = build_prompt(text, output_style)
+                        script, err = generate_script_with_groq(prompt)
+                        st.session_state.script = script
+                        st.session_state.err = err
 
-st.markdown("""
----
-*This tool is part of the DDD College Lost and Found Web App. For image captioning, visit the [Image Captioning page](#).*
-""") 
+    if st.session_state.script:
+        cleaned_script = clean_script(st.session_state.script, output_style)
+        named_script = replace_host_names(cleaned_script, "Alice", "Sophie")
+        humanized_script = humanize_script(named_script)
+        st.subheader("Generated Script:")
+        st.text_area("Script Output", humanized_script, height=200)
+        st.markdown(
+            "> **Note:** Using gTTS (Google Text-to-Speech) for audio generation. Requires internet connection."
+        )
+        st.markdown("**Generate Audio (Powered by gTTS):**")
+        if output_style == "Podcast-Style Discussion":
+            if st.button("Generate Podcast Audio (Single Voice)"):
+                with st.spinner("Generating podcast audio with gTTS..."):
+                    audio_file = generate_podcast_audio_gtts(humanized_script)
+                if audio_file:
+                    st.success("Audio generated!")
+                    st.audio(audio_file, format="audio/mp3")
+                    with open(audio_file, "rb") as f:
+                        st.download_button("Download Podcast Audio (MP3)", f, file_name="podcast.mp3", mime="audio/mp3")
+                else:
+                    st.error("gTTS failed to generate audio.")
+        else:
+            if st.button(f"Generate Audio"):
+                with st.spinner("Generating audio with gTTS..."):
+                    audio_file = gtts_tts_to_mp3(humanized_script)
+                if audio_file:
+                    st.success("Audio generated!")
+                    st.audio(audio_file, format="audio/mp3")
+                    with open(audio_file, "rb") as f:
+                        st.download_button(f"Download Audio", f, file_name=f"script.mp3", mime="audio/mp3")
+                else:
+                    st.error("gTTS failed to generate audio.")
+    elif st.session_state.err:
+        st.error(st.session_state.err)
+
+with tabs[1]:
+    st.subheader("Image Captioning (BLIP + Local Model)")
+    st.markdown("""
+    Upload an image and generate a funny, sarcastic caption or a creative story using BLIP (runs locally, no API key needed).
+    """)
+    uploaded_image = st.file_uploader("Upload an image:", type=["jpg", "jpeg", "png"])
+    caption_type = st.radio("Caption Type", ["Funny/Sarcastic Caption", "Creative Story"])
+    if st.button("Generate Caption/Story"):
+        if not uploaded_image:
+            st.error("Please upload an image.")
+        else:
+            image = Image.open(uploaded_image)
+            with st.spinner("Generating caption with BLIP (local model)..."):
+                base_caption = generate_caption(image)
+                if caption_type == "Funny/Sarcastic Caption":
+                    prompt = f"Make this image caption funny and sarcastic: '{base_caption}'"
+                else:
+                    prompt = f"Write a creative, imaginative story based on this image caption: '{base_caption}'"
+                story, err = generate_script_with_groq(prompt)
+                if err:
+                    st.error(f"Groq API error: {err}")
+                else:
+                    st.image(image, caption="Uploaded Image", use_container_width=True)
+                    st.subheader("Generated Caption/Story:")
+                    # Visually appealing box for the caption/story
+                    st.markdown(
+                        '<div style="background-color:#f0f4fa;padding:1.2em 1.5em;border-radius:12px;border:1px solid #b3c6e0;font-size:1.2rem;font-weight:500;color:#222;margin-bottom:1.5em;">'
+                        + story + '</div>',
+                        unsafe_allow_html=True
+                    )
+
+# Add a note about BLIP model loading time at the top
+st.info("Note: The BLIP model may take up to a minute to load the first time you use image captioning. Subsequent uses will be much faster.") 

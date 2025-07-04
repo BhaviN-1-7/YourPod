@@ -1,97 +1,95 @@
-# Lost and Found Script Generator (DDD College)
+# YourPod: Streamlit Script Generator with gTTS & Groq Llama 3
 
-A Streamlit-based web app for generating podcast-style scripts, summaries, and detailed explanations from text, PDFs, or news topics. Converts scripts to audio using MeloTTS and Llama 3.1 (Ollama). Designed for DDD College lost-and-found and announcement use cases.
-
-## Features
-- **Input Types:**
-  - Text input
-  - PDF upload (extracts text)
-  - News topic (fetches news content)
-- **Output Styles:**
-  - Male & Female podcast-style discussion
-  - Summary
-  - Detailed explanation
-- **Audio Generation:**
-  - Uses MeloTTS for TTS (male/female voices)
-  - Downloadable MP3
-- **LLM:**
-  - Uses Llama 3.1 8B via Ollama (local, free)
-- **UI:**
-  - Streamlit, with tabs for input types and output style selection
-
-## Setup Instructions
-
-### 1. Clone the Repository
-```bash
-git clone <your_github_repo_url>
-cd your-repo-directory
-```
-
-### 2. Install Dependencies
-```bash
-pip install streamlit pymupdf langchain langchain-community ollama melotts requests beautifulsoup4
-```
-
-### 3. Install and Run Ollama
-- [Download Ollama](https://ollama.com/download)
-- Pull the Llama 3.1 8B model:
-```bash
-ollama pull llama3.1:8b
-ollama serve  # Start the Ollama server
-```
-
-### 4. (Optional) Set Up NewsAPI
-- Get a free API key from [NewsAPI](https://newsapi.org/)
-- Add your key in `script_generator_app.py` (`NEWSAPI_KEY` variable)
-
-### 5. Run the App
-```bash
-streamlit run script_generator_app.py
-```
-
-## Usage
-1. Select an input type (Text, PDF, or News Topic).
-2. Enter or upload your content.
-3. Choose an output style (Podcast, Summary, Detailed Explanation).
-4. Click "Generate Script".
-5. Listen to or download the generated audio.
-
-## Sample Inputs & Outputs
-
-### Input (Text):
-```
-Lost: A blue laptop in DDD library on July 2, 2025.
-```
-
-### Podcast-Style Output:
-```
-Host 1 (Male): Welcome back, DDD students! We've got an urgent lost item alert. Someone's missing a blue laptop in the library!
-Host 2 (Female): Yeah, it was last seen on July 2nd, probably left near the study desks. If it's yours, don't wait!
-Host 1: Head to the DDD lost-and-found office or email student@domain.com to claim it. Let's get that laptop back!
-```
-
-### Summary Output:
-```
-A blue laptop was lost in the DDD library on July 2, 2025. Contact the lost-and-found office.
-```
-
-### Detailed Explanation Output:
-```
-On July 2, 2025, a blue laptop was reported lost in the DDD college library, likely near the study area. The owner is urged to contact the lost-and-found office at student@domain.com to verify and claim it. This incident highlights the importance of securing personal belongings in shared spaces.
-```
-
-## Project Submission (DDD College)
-- **Format:** Single Python file (`script_generator_app.py`) and this README.
-- **Integration:** Can be added as a new page/tab to the main Lost and Found Web App.
-- **Testing:**
-  - Test with sample PDFs, text, and news topics.
-  - Ensure Ollama and MeloTTS are running locally.
-- **GitHub Link:** [Your repository URL here]
-
-## Notes
-- All tools used are free and open-source.
-- For non-text PDFs, OCR (e.g., pytesseract) can be added as a future enhancement.
-- For image captioning, see the BLIP integration in the main app.
+YourPod is a free, locally-runnable Streamlit web app that generates scripts from text or PDF input using Groq Llama 3 (via the Groq API) and converts them to audio using Google Text-to-Speech (gTTS). It supports podcast-style, summary, and detailed explanation output, and can generate podcast audio with two distinct voices.
 
 ---
-*For questions, contact the DDD College project team.* 
+
+## Features
+- **Input:**
+  - Text area for manual entry
+  - PDF upload and automatic text extraction
+- **Output Styles:**
+  - Podcast-style discussion (two hosts, two accents)
+  - Summary
+  - Detailed explanation
+- **Script Generation:**
+  - Uses Groq Llama 3 via the Groq API
+- **Audio Generation:**
+  - Uses gTTS (Google Text-to-Speech)
+  - Podcast mode alternates two female host names ("Alice" and "Sophie") and two English accents (US/UK)
+  - Humanizes script for more natural speech
+- **Downloadable Audio:**
+  - Download generated MP3 files
+- **Secure API Key Handling:**
+  - API key is stored in `config_secret.py` (not tracked by git)
+
+---
+
+## Setup
+
+1. **Clone the repo:**
+   ```sh
+   git clone https://github.com/BhaviN-1-7/YourPod.git
+   cd YourPod
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```sh
+   python -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+4. **Add your Groq API key:**
+   - Create a file called `config_secret.py` in the project root:
+     ```python
+     GROQ_API_KEY = "your-groq-api-key-here"
+     ```
+   - **Do not commit this file to git!**
+
+5. **Run the app:**
+   ```sh
+   streamlit run script_generator_app.py
+   ```
+
+---
+
+## Usage
+1. Enter text or upload a PDF.
+2. Select the output style (Podcast, Summary, Detailed Explanation).
+3. Click "Generate Script".
+4. Review the generated script.
+5. Click the audio button to generate and play/download the MP3.
+
+---
+
+## Deployment
+- **Local:** Works out of the box as long as you have internet access (for gTTS and Groq API).
+- **Streamlit Community Cloud:**
+  - gTTS may not work reliably due to outbound network restrictions.
+  - For public deployment, consider using a cloud TTS API (e.g., ElevenLabs, PlayHT, Azure).
+- **Cloud VM:** Works if the server has internet access.
+
+---
+
+## Security
+- **Never commit your API keys to git.**
+- `config_secret.py` is in `.gitignore` and should be created manually on each deployment.
+
+---
+
+## Credits
+- [Streamlit](https://streamlit.io/)
+- [gTTS](https://pypi.org/project/gTTS/)
+- [Groq Llama 3](https://groq.com/)
+- [PyMuPDF](https://pymupdf.readthedocs.io/en/latest/)
+- [pydub](https://github.com/jiaaro/pydub)
+
+---
+
+## License
+MIT License 
